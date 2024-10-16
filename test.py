@@ -22,7 +22,7 @@ def search_dream(query):
         return None
 
 # OpenAI API 설정
-openai_api_key = "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"
+openai_api_key = "your_openai_api_key"
 
 # 벡터 DB 설정 및 LangChain 체인 정의
 embedding = OpenAIEmbeddings(openai_api_key=openai_api_key)
@@ -39,6 +39,7 @@ st.title('Dream Interpreter & Chatbot')
 query = st.text_input('Enter your dream description or question:')
 if query:
     # Naver API를 통해 꿈 해석
+    
     result = search_dream(query)
     if result:
         st.write("Dream Interpretation:")
