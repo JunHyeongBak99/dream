@@ -10,6 +10,9 @@ from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 
 
+# OpenAI API 키를 직접 설정
+openai_api_key = "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"  # 여기에 실제 OpenAI API 키를 입력하세요.
+openai.api_key = openai_api_key
 # OpenAI API를 직접 호출하는 함수
 def get_openai_response(prompt):
     try:
@@ -26,7 +29,6 @@ def get_openai_response(prompt):
         st.error(f"OpenAI API 호출 중 오류가 발생했습니다: {e}")
         return None
 
-openai.api_key = os.getenv("OPENAI_API_KEY")  # 또는 직접 API 키를 넣어도 됩니다.
 
 # Naver API 설정
 CLIENT_ID = 'kOTwXT4d09oyxlqSO_Vg'
@@ -41,10 +43,9 @@ def search_blog(keyword):
     }
     try:
         response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json().get('items', [])
-    except requests.exceptions.RequestException as e:
-        st.error(f"블로그 API 호출 중 오류가 발생했습니다: {e}")
+        return response.json()
+    except Exception as e:
+        print(f"Naver API 호출 중 오류가 발생했습니다: {e}")
         return None
 
 # Naver 백과사전 검색 API 호출 함수
@@ -60,12 +61,15 @@ def search_dream(query):
         return None
 # LangChain 설정 함수: qa_chain 설정
 def get_qa_chain():
-    embedding = OpenAIEmbeddings()
-    vectordb = Chroma(embedding_function=embedding)
-    memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-    llm = OpenAI()
-    
-    qa_chain = ConversationalRetrievalChain.from_llm(llm, retriever=vectordb.as_retriever(), memory=memory)
+    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    llm = OpenAI(openai_api_key=openai_api_key)
+    memory = ConversationBufferMemory()
+    vectorstore = Chroma(embedding_function=embeddings)
+    qa_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory
+    )
     return qa_chain
 
 # 별빛 애니메이션 설정
