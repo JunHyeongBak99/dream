@@ -19,7 +19,10 @@ def get_openai_response(prompt):
         # GPT-3.5 또는 GPT-4 모델을 호출하는 부분
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # 또는 gpt-4 사용 가능
-            messages=[{"role": "system", "content": "당신의 밤은 안녕한가요?"}, {"role": "user", "content": prompt}]
+            messages=[
+                {"role": "system", "content": "당신의 밤은 안녕한가요?"},
+                {"role": "user", "content": prompt}
+            ]
         )
         return response['choices'][0]['message']['content']
     except Exception as e:
@@ -33,7 +36,10 @@ CLIENT_SECRET = 'uKa8vmVcsI'
 # Naver 블로그 검색 API 호출 함수
 def search_blog(keyword):
     url = f"https://openapi.naver.com/v1/search/blog.json?query={keyword}"
-    headers = {"X-Naver-Client-Id": CLIENT_ID, "X-Naver-Client-Secret": CLIENT_SECRET}
+    headers = {
+        "X-Naver-Client-Id": CLIENT_ID,
+        "X-Naver-Client-Secret": CLIENT_SECRET
+    }
     try:
         response = requests.get(url, headers=headers)
         return response.json()
@@ -89,10 +95,22 @@ def setup_particles_via_iframe():
                 overflow: hidden;
                 height: 100vh;
             }
+            .content {
+                position: relative;
+                z-index: 1;
+                color: white;
+                text-align: center;
+                padding-top: 50px;
+            }
         </style>
     </head>
     <body>
         <div id="particles-js"></div>
+        <div class="content">
+            <h1>Dream Interpretation Blog & Encyclopedia Search</h1>
+            <input type="text" id="query" placeholder="Enter a keyword for dream interpretation">
+            <button onclick="search()">Search</button>
+        </div>
         <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.0.0/tsparticles.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@tsparticles/preset-stars@3/tsparticles.preset.stars.bundle.min.js"></script>
         <script>
@@ -128,13 +146,18 @@ def setup_particles_via_iframe():
                     retina_detect: true
                 });
             })();
+            function search() {
+                const query = document.getElementById('query').value;
+                if (query) {
+                    window.parent.postMessage({ type: 'search', query: query }, '*');
+                }
+            }
         </script>
     </body>
     </html>
     """
-    
     # HTML 코드 삽입
-    components.html(html_code, height=1000)
+    components.html(html_code, height=700)
 
 # 테마 설정 함수
 def setup_theme():
@@ -159,15 +182,12 @@ def setup_theme():
         </style>
     """, unsafe_allow_html=True)
 
-def run_ui(qa_chain):
+def run_ui(qa_chain, query):
+    # qa_chain이 제대로 전달되지 않았을 경우 오류를 표시
     if qa_chain is None:
         st.error("qa_chain 인자가 전달되지 않았습니다.")
         return
-    
-    st.title('Dream Interpretation Blog & Encyclopedia Search')
 
-    query = st.text_input("Enter a keyword for dream interpretation:")
-    
     if query:
         # Naver API를 통한 꿈 해석
         blog_results = search_blog(query + ' 꿈 해몽')
@@ -193,4 +213,24 @@ if __name__ == "__main__":
     qa_chain = get_qa_chain()
     setup_theme()  # 테마 설정
     setup_particles_via_iframe()  # 별빛 애니메이션
-    run_ui(qa_chain)  # UI 실행
+
+    # JavaScript 메시지 수신 설정
+    st.markdown("""
+        <script>
+            window.addEventListener("message", (event) => {
+                if (event.data.type === "search") {
+                    const query = event.data.query;
+                    window.parent.postMessage({ type: "streamlit:setQuery", query: query }, "*");
+                }
+            });
+        </script>
+    """, unsafe_allow_html=True)
+
+    # 검색어 수신 및 처리
+    if "streamlit:setQuery" in st.session_state:
+        query = st.session_state["streamlit:setQuery"]
+        st.write(f"Received query: {query}")
+        # 검색어를 사용하여 검색 수행
+        run_ui(qa_chain, query)
+    else:
+        run_ui(qa_chain, None)
