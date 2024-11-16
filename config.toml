@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#1E90FF"
+backgroundColor = "linear-gradient(to bottom, #0b1e2e, #f8c9d4)"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#ffffff"
+font = "sans serif"
