@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import openai
 from datetime import datetime
+import re
 from langchain.chains import ConversationalRetrievalChain
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -43,6 +44,11 @@ def search_blog(keyword):
         st.error(f"블로그 API 호출 중 오류가 발생했습니다: {e}")
         return None
 
+# HTML 태그 제거 함수
+def remove_html_tags(text):
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
+
 # LangChain 설정 함수: qa_chain 설정
 def get_qa_chain():
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
@@ -69,25 +75,21 @@ def run_ui(qa_chain, query):
 
         if blog_results:
             st.subheader("Blog Search Results:")
-            for item in blog_results:
-                # 한 줄로 출력
-                st.write(f"**{item['title']}**: {item['description']} [Read more]({item['link']})")
+            for i, item in enumerate(blog_results, 1):
+                title = remove_html_tags(item['title'])
+                description = remove_html_tags(item['description'])
+                st.write(f"{i}. **{title}**: {description} [Read more]({item['link']})")
         else:
             st.write("No blog results found.")
 
         if dream_results:
             st.subheader("Encyclopedia Search Results:")
-            for item in dream_results:
-                # 한 줄로 출력
-                st.write(f"**{item['title']}**: {item['description']} [Read more]({item['link']})")
+            for i, item in enumerate(dream_results, 1):
+                title = remove_html_tags(item['title'])
+                description = remove_html_tags(item['description'])
+                st.write(f"{i}. **{title}**: {description} [Read more]({item['link']})")
         else:
             st.write("No encyclopedia results found.")
-
-        # OpenAI LangChain을 통한 질의 응답
-        st.subheader("AI Chatbot Response:")
-        response = qa_chain.run({"question": query, "chat_history": []})
-        if response:
-            st.write(response)
 
 if __name__ == "__main__":
     qa_chain = get_qa_chain()
