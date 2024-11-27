@@ -1,8 +1,7 @@
+import os
 import streamlit as st
-import requests
 import openai
-from datetime import datetime
-import re
+import requests
 from langchain.chains import ConversationalRetrievalChain
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -10,135 +9,95 @@ from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 
 # OpenAI API 키 설정
-openai_api_key = "your_openai_api_key"
+openai_api_key = "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"
 openai.api_key = openai_api_key
 
-# Naver API 설정
-CLIENT_ID = 'kOTwXT4d09oyxlqSO_Vg'
-CLIENT_SECRET = 'uKa8vmVcsI'
+# 네이버 API 설정
+CLIENT_ID = "uh2AfBPLQDIUkXpkvnQC"
+CLIENT_SECRET = "dXBin21ECU"
 
-# Naver 백과사전 검색 API 호출 함수
-def search_dream(query):
+# 네이버 검색 결과를 가져오는 함수
+def search_dream_with_naver(query):
     url = f"https://openapi.naver.com/v1/search/encyc.json?query={query}"
-    headers = {"X-Naver-Client-Id": CLIENT_ID, "X-Naver-Client-Secret": CLIENT_SECRET}
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json().get('items', [])
-    except requests.exceptions.RequestException as e:
-        st.error(f"백과사전 API 호출 중 오류가 발생했습니다: {e}")
-        return None
-
-# Naver 블로그 검색 API 호출 함수
-def search_blog(keyword):
-    url = f"https://openapi.naver.com/v1/search/blog.json?query={keyword}"
     headers = {
         "X-Naver-Client-Id": CLIENT_ID,
-        "X-Naver-Client-Secret": CLIENT_SECRET
+        "X-Naver-Client-Secret": CLIENT_SECRET,
     }
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        return response.json().get('items', [])
+        items = response.json().get("items", [])
+        return [f"{item['title']} - {item['description']}" for item in items]
     except requests.exceptions.RequestException as e:
-        st.error(f"블로그 API 호출 중 오류가 발생했습니다: {e}")
-        return None
+        st.error(f"네이버 API 호출 오류: {e}")
+        return []
 
-# HTML 태그 제거 함수
-def remove_html_tags(text):
-    clean = re.compile('<.*?>')
-    return re.sub(clean, '', text)
+# LangChain RAG 구성 함수
+def initialize_rag_system(naver_results):
+    if not naver_results:
+        st.warning("네이버 검색 결과가 없습니다. 기본 데이터를 사용합니다.")
+        naver_results = ["기본 데이터 예시"]
 
-# LangChain 설정 함수: qa_chain 설정
-def get_qa_chain():
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-    llm = OpenAI(openai_api_key=openai_api_key)
-    memory = ConversationBufferMemory()
-    vectorstore = Chroma(embedding_function=embeddings)
-    qa_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=vectorstore.as_retriever(),
-        memory=memory
+    vectorstore = Chroma.from_texts(naver_results, embeddings)
+
+    llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
+    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+    return ConversationalRetrievalChain.from_llm(
+        llm=llm, retriever=retriever, memory=memory
     )
-    return qa_chain
 
-def run_ui(qa_chain, query):
-    # qa_chain이 제대로 전달되지 않았을 경우 오류를 표시
-    if qa_chain is None:
-        st.error("qa_chain 인자가 전달되지 않았습니다.")
-        return
-
-    if query:
-        # Naver API를 통한 꿈 해석
-        blog_results = search_blog(query + ' 꿈 해몽')
-        dream_results = search_dream(query + ' 꿈 해몽')
-
-        if blog_results:
-            st.subheader("Blog Search Results:")
-            for i, item in enumerate(blog_results, 1):
-                title = remove_html_tags(item['title'])
-                description = remove_html_tags(item['description'])
-                st.write(f"{i}. **{title}**: {description} [Read more]({item['link']})")
-        else:
-            st.write("No blog results found.")
-
-        if dream_results:
-            st.subheader("Encyclopedia Search Results:")
-            for i, item in enumerate(dream_results, 1):
-                title = remove_html_tags(item['title'])
-                description = remove_html_tags(item['description'])
-                st.write(f"{i}. **{title}**: {description} [Read more]({item['link']})")
-        else:
-            st.write("No encyclopedia results found.")
-
-if __name__ == "__main__":
-    qa_chain = get_qa_chain()
-
-    # CSS를 사용하여 배경색을 그라데이션으로 설정하고, 제목과 검색창의 색상을 변경
-    st.markdown("""
+# Streamlit UI 구성
+def run_ui():
+    st.markdown(
+        """
         <style>
-            .stApp {
-                background: linear-gradient(to bottom, #0b1e2e, #f8c9d4);
-            }
-            .stApp header h1 {
-                color: #ffffff !important; /* 제목 색상 */
-            }
-            .stApp .stTextInput input {
-                background-color: #333333 !important; /* 검색창 배경색 */
-                color: #ffffff !important; /* 검색창 텍스트 색상 */
-            }
-            .stApp .stTextInput label {
-                color: #ffffff !important; /* 검색창 라벨 색상 */
-            }
-            .css-1d391kg, .css-1d391kg * {
-                color: #000000 !important; /* 사이드바 텍스트 색상 */
-            }
+        .stApp {
+            background: linear-gradient(to bottom, #0b1e2e, #f8c9d4);
+            color: #ffffff;
+        }
         </style>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # 제목과 검색창 추가
-    st.title("Dream Interpretation Blog & Encyclopedia Search")
-    query = st.text_input("Enter a keyword for dream interpretation")
+    st.title("🌙 당신의 밤은 안녕하신가요?")
+    st.markdown("네이버 검색 결과와 GPT를 활용한 통합 해석 시스템입니다.")
 
-    # 검색 기록을 저장할 리스트
-    if 'search_history' not in st.session_state:
-        st.session_state['search_history'] = []
+    dream_description = st.text_area("꿈 설명을 입력하세요", placeholder="예: 숲 속에서 길을 잃고 어둠 속에서 쫓기는 꿈을 꾸었습니다.")
+    stress_score = st.slider("스트레스 수준을 선택하세요", 0, 100, 50)
 
-    # 검색어 수신 및 처리
-    if query:
-        st.write(f"Received query: {query}")
-        # 검색어를 사용하여 검색 수행
-        run_ui(qa_chain, query)
-        # 검색 기록에 날짜와 함께 추가
-        search_record = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {query}"
-        st.session_state['search_history'].append(search_record)
+    if st.button("해석 요청"):
+        if dream_description:
+            st.subheader("💬 GPT 해몽 및 조언")
+            question = f"꿈 설명: {dream_description}\n스트레스 수준: {stress_score}/100\n"
+            llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
 
-    # 사이드바에 검색 기록 표시
-    st.sidebar.title("Search History")
-    for i, record in enumerate(st.session_state['search_history']):
-        if st.sidebar.button(f"{i + 1}. {record}"):
-            st.session_state['selected_record'] = record
+            try:
+                #question 변수가 리스트인지 확인
+                st.write(f"전달된 질문: {question}")
+                st.write(f"질문 타입: {type(question)}")
+                response = llm.generate([question])
+                st.write(response.generations[0][0].text.strip())
+            except openai.OpenAIError as e:
+                st.error(f"OpenAI API 호출 오류: {e}")
+            except ValueError as ve:
+                st.error(f"입력 값 오류: {ve}")
+            except Exception as e:
+                st.error(f"예기치 못한 오류 발생: {e}")
 
-    # 선택된 검색 기록 표시
-    if 'selected_record' in st.session_state:
-        st.write(f"Selected Record: {st.session_state['selected_record']}")
+            st.subheader("🔍 네이버 검색 결과")
+            naver_results = search_dream_with_naver(dream_description + " 꿈 해몽")
+            if naver_results:
+                for result in naver_results:
+                    st.write(f"- {result}")
+            else:
+                st.write("네이버 검색 결과가 없습니다.")
+        else:
+            st.warning("꿈 설명을 입력해주세요!")
+
+# 실행
+if __name__ == "__main__":
+    run_ui()
