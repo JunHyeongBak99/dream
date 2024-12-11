@@ -1,14 +1,10 @@
-streamlit==1.35.0
-requests==2.32.3
-openai==0.28.0
-langchain==0.3.7
-pandas==2.2.2
-numpy==1.26.4
-langchain-community==0.3.7
+langchain
+openai
 tiktoken 
 chromadb 
 langchain-community 
 langchain-openai 
 gradio 
 unstructured
+streamlit
 pysqlite3-binary
