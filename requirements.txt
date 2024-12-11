@@ -3,3 +3,4 @@ requests
 openai
 langchain
 chromadb
+langchain-community
