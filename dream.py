@@ -8,9 +8,15 @@ from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
+from dotenv import load_dotenv
+import os
+
+# 환경 변수 로드
+load_dotenv()
+
 
 # OpenAI API 키 설정
-openai_api_key = "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"
+openai_api_key = os.getenv("OPENAI_API_KEY")
 openai.api_key = openai_api_key
 
 # Naver API 설정
