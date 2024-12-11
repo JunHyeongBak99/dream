@@ -3,7 +3,7 @@ if sqlite3.sqlite_version_info < (3, 35, 0):
     __import__('pysqlite3')
     import sys
     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-    
+
 import streamlit as st
 import requests
 import openai
@@ -14,23 +14,10 @@ from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
-from dotenv import load_dotenv
-import os
 
-# 환경 변수 로드
-load_dotenv()
-
-# LangChain의 Chroma 벡터 스토어와 OpenAI 임베딩 설정
-embeddings = OpenAIEmbeddings(openai_api_key='openai_api_key')
-
-# Chroma DB 초기화 (벡터 스토어 생성)
-vectorstore = Chroma(embedding_function=embeddings)
-
-# 벡터 저장소에 데이터 추가하기
-texts = ["문서 1", "문서 2", "문서 3"]
-# 문서들을 벡터화하여 Chroma 벡터 스토어에 추가
-vectorstore.add_texts(texts)
-
+# OpenAI API 키 설정
+openai_api_key = "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"
+openai.api_key = openai_api_key
 
 # Naver API 설정
 CLIENT_ID = 'kOTwXT4d09oyxlqSO_Vg'
@@ -55,8 +42,8 @@ def remove_html_tags(text):
 
 # LangChain 설정 함수: qa_chain 설정
 def get_qa_chain():
-    embeddings = OpenAIEmbeddings(openai_api_key='openai_api_key')
-    llm = OpenAI(openai_api_key='openai_api_key')
+    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    llm = OpenAI(openai_api_key=openai_api_key)
     memory = ConversationBufferMemory()
     vectorstore = Chroma(embedding_function=embeddings)
     qa_chain = ConversationalRetrievalChain.from_llm(
