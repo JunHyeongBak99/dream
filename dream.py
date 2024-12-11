@@ -20,14 +20,22 @@ import os
 # 환경 변수 로드
 load_dotenv()
 
+# LangChain의 Chroma 벡터 스토어와 OpenAI 임베딩 설정
+embeddings = OpenAIEmbeddings(openai_api_key='openai_api_key')
 
-# OpenAI API 키 설정
-openai_api_key = os.getenv("OPENAI_API_KEY")
-openai.api_key = openai_api_key
+# Chroma DB 초기화 (벡터 스토어 생성)
+vectorstore = Chroma(embedding_function=embeddings)
+
+# 벡터 저장소에 데이터 추가하기
+texts = ["문서 1", "문서 2", "문서 3"]
+# 문서들을 벡터화하여 Chroma 벡터 스토어에 추가
+vectorstore.add_texts(texts)
+
 
 # Naver API 설정
-CLIENT_ID = "CLIENT_ID"
-CLIENT_SECRET = "CLIENT_SECRET"
+CLIENT_ID = 'kOTwXT4d09oyxlqSO_Vg'
+CLIENT_SECRET = 'uKa8vmVcsI'
+
 # Naver 백과사전 검색 API 호출 함수
 def search_dream(query):
     url = f"https://openapi.naver.com/v1/search/encyc.json?query={query}"
@@ -47,8 +55,8 @@ def remove_html_tags(text):
 
 # LangChain 설정 함수: qa_chain 설정
 def get_qa_chain():
-    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-    llm = OpenAI(openai_api_key=openai_api_key)
+    embeddings = OpenAIEmbeddings(openai_api_key='openai_api_key')
+    llm = OpenAI(openai_api_key='openai_api_key')
     memory = ConversationBufferMemory()
     vectorstore = Chroma(embedding_function=embeddings)
     qa_chain = ConversationalRetrievalChain.from_llm(
