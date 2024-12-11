@@ -10,7 +10,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 
 # OpenAI API 키 설정
-openai_api_key = "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"
+openai_api_key = "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"
 openai.api_key = openai_api_key
 
 # Naver API 설정
