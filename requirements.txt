@@ -1,6 +1,6 @@
-streamlit
-requests
-openai
-langchain
-chromadb
-langchain-community
+streamlit==1.35.0
+requests==2.32.3
+openai==0.28.0
+langchain==0.3.7
+pandas==2.2.2
+numpy==1.26.4
