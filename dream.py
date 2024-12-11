@@ -26,8 +26,8 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 openai.api_key = openai_api_key
 
 # Naver API 설정
-CLIENT_ID = 'CLIENT_ID'
-CLIENT_SECRET = 'CLIENT_SECRET'
+CLIENT_ID = "CLIENT_ID"
+CLIENT_SECRET = "CLIENT_SECRET"
 # Naver 백과사전 검색 API 호출 함수
 def search_dream(query):
     url = f"https://openapi.naver.com/v1/search/encyc.json?query={query}"
